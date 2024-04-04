@@ -18,6 +18,8 @@ model Company {
   user_id Int
   user User @relation(fields: [user_id], references: [id])
   freight_registers FreightRegistration[]
+
+  @@map("company")
 }
 
 model User {
@@ -26,8 +28,10 @@ model User {
   email String
   password String
   profile_type String
-  companys_users Company[]
-  delivery_persons_users DeliveryPerson[]
+  company_users Company[]
+  delivery_person_users DeliveryPerson[]
+
+  @@map("users")
 }
 
 model DeliveryPerson {
@@ -36,6 +40,8 @@ model DeliveryPerson {
   user User @relation(fields: [user_id], references: [id])
   freight_registers FreightRegistration[]
   vehicle_registers VehicleRegistration[]
+
+  @@map("delivery_person")
 }
 
 model Vehicle {
@@ -43,6 +49,9 @@ model Vehicle {
   vehicle_type String
   classif_weight Int
   vehicle_registers VehicleRegistration[]
+
+    @@map("vehicle")
+
 }
 
 model Freight {
@@ -53,6 +62,8 @@ model Freight {
   tax Float
   value Float
   freight_registers FreightRegistration[]
+
+  @@map("freight")
 }
 
 model FreightRegistration {
@@ -63,6 +74,8 @@ model FreightRegistration {
   company Company @relation(fields: [company_id], references: [id])
   delivery_person_id Int
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
+
+  @@map("freight_registration")
 }
 
 model VehicleRegistration {
@@ -71,4 +84,6 @@ model VehicleRegistration {
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
   vehicle_id Int
   vehicle Vehicle @relation(fields: [vehicle_id], references: [id])
+
+  @@map("vehicle_registration")
 }
