@@ -1,1 +1,3 @@
-export class CreateDeliveryPersonDto {}
+export class CreateDeliveryPersonDto {
+  email: string;
+}

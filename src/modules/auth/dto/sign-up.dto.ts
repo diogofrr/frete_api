@@ -1,7 +1,7 @@
 import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
-import { UserRole } from 'src/modules/delivery-person/enum/profile-type.enum';
+import { UserRole } from '../../delivery-person/enum/profile-type.enum';
 
-export class CreateUserDto {
+export class SignUpDto {
   @IsNotEmpty()
   name: string;
 
