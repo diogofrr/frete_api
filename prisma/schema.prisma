@@ -74,6 +74,7 @@ model FreightRegistration {
   company Company @relation(fields: [company_id], references: [id])
   delivery_person_id Int
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
+  status_request String
 
   @@map("freight_registration")
 }

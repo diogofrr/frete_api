@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { CreateFreightDto } from './dto/create-freight.dto';
 import { UpdateFreightDto } from './dto/update-freight.dto';
+import { PrismaService } from 'src/database/prisma.service';
 
 @Injectable()
 export class FreightService {
-  create(createFreightDto: CreateFreightDto) {
-    return 'This action adds a new freight';
+  constructor(private prisma: PrismaService) {}
+
+  async create(createFreightDto: CreateFreightDto) {
+    // const freight = await this.prisma.freight.create({
+    //   data: createFreightDto,
+    // });
   }
 
   findAll() {

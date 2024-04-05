@@ -6,6 +6,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from 'src/database/prisma.service';
+import { DeliveryPersonService } from '../delivery-person/delivery-person.service';
 
 @Module({
   imports: [
@@ -17,7 +18,13 @@ import { PrismaService } from 'src/database/prisma.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtService, UsersService, PrismaService],
+  providers: [
+    AuthService,
+    JwtService,
+    UsersService,
+    PrismaService,
+    DeliveryPersonService,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}
@@ -29,3 +36,6 @@ export class AuthModule {}
 //     useClass: AuthGuard,
 //   },
 // ],
+//                    OU
+// PARA PROTEGER APENAS UMA ROTA
+// @UseGuards(AuthGuard)

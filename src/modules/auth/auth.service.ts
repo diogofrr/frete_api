@@ -6,11 +6,15 @@ import { SignInDto } from './dto/sign-in.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { IAccessToken } from './interfaces/access-token.interface';
 import { jwtConstants } from './constants';
+import { Role } from '../roles/enum/role.enum';
+import { DeliveryPersonService } from '../delivery-person/delivery-person.service';
+import { CreateDeliveryPersonDto } from '../delivery-person/dto/create-delivery-person.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private deliveryPerson: DeliveryPersonService,
     private jwtService: JwtService,
   ) {}
 
@@ -22,8 +26,15 @@ export class AuthService {
       throw new UnauthorizedException('Email or password is incorrect');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      profile_type: user.profile_type,
+    };
+    delete user.password;
+
     return {
+      ...user,
       access_token: await this.jwtService.signAsync(payload, {
         secret: jwtConstants.secret,
         expiresIn: '2h',
@@ -34,8 +45,21 @@ export class AuthService {
   async signUp(data: CreateUserDto): Promise<IAccessToken> {
     const user = await this.usersService.create(data);
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      profile_type: user.profile_type,
+    };
+    delete user.password;
+
+    const deliveryPersonDto = new CreateDeliveryPersonDto(user.id);
+
+    if (user.profile_type === Role.DELIVERY) {
+      await this.deliveryPerson.create(deliveryPersonDto);
+    }
+
     return {
+      ...user,
       access_token: await this.jwtService.signAsync(payload, {
         secret: jwtConstants.secret,
         expiresIn: '2h',

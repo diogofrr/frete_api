@@ -8,11 +8,3 @@ export const jwtConstants = {
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-
-// PASSAR PARA O MODULE PARA TORNAR TUDO PROTEGIDO
-// providers: [
-//   {
-//     provide: APP_GUARD,
-//     useClass: AuthGuard,
-//   },
-// ],

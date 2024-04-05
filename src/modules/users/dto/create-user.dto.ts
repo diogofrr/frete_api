@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
-import { UserRole } from 'src/modules/auth/enum/profile-type.enum';
+import { Role } from 'src/modules/roles/enum/role.enum';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -13,6 +13,6 @@ export class CreateUserDto {
   password: string;
 
   @IsNotEmpty()
-  @IsEnum(UserRole)
+  @IsEnum(Role)
   profile_type: string;
 }
