@@ -4,11 +4,11 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { SignInDto } from './dto/sign-in.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { IAccessToken } from './interfaces/access-token.interface';
 import { jwtConstants } from './constants';
 import { Role } from '../roles/enum/role.enum';
 import { DeliveryPersonService } from '../delivery-person/delivery-person.service';
 import { CreateDeliveryPersonDto } from '../delivery-person/dto/create-delivery-person.dto';
+import { ResponseDto } from '../global/dto/response.dto';
 
 @Injectable()
 export class AuthService {
@@ -18,52 +18,52 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signIn(data: SignInDto): Promise<IAccessToken> {
+  async signIn(data: SignInDto): Promise<ResponseDto> {
     const user = await this.usersService.findOne(data.email);
-    const isMatch = await bcrypt.compare(data.password, user.password);
+    const isMatch = await bcrypt.compare(data.password, user.result.password);
 
     if (!isMatch) {
       throw new UnauthorizedException('Email or password is incorrect');
     }
 
     const payload = {
-      sub: user.id,
-      email: user.email,
-      profile_type: user.profile_type,
+      sub: user.result.id,
+      email: user.result.email,
+      profile_type: user.result.profile_type,
     };
-    delete user.password;
+    delete user.result.password;
 
-    return {
-      ...user,
+    return new ResponseDto(false, 'Successfully logged in', {
+      ...user.result,
       access_token: await this.jwtService.signAsync(payload, {
         secret: jwtConstants.secret,
         expiresIn: '2h',
       }),
-    };
+    });
   }
 
-  async signUp(data: CreateUserDto): Promise<IAccessToken> {
+  async signUp(data: CreateUserDto): Promise<ResponseDto> {
     const user = await this.usersService.create(data);
 
     const payload = {
-      sub: user.id,
-      email: user.email,
-      profile_type: user.profile_type,
+      sub: user.result.id,
+      email: user.result.email,
+      profile_type: user.result.profile_type,
     };
-    delete user.password;
+    delete user.result.password;
 
-    const deliveryPersonDto = new CreateDeliveryPersonDto(user.id);
+    const deliveryPersonDto = new CreateDeliveryPersonDto(user.result.id);
 
-    if (user.profile_type === Role.DELIVERY) {
+    if (user.result.profile_type === Role.DELIVERY) {
       await this.deliveryPerson.create(deliveryPersonDto);
     }
 
-    return {
-      ...user,
+    return new ResponseDto(false, 'Account created successfully', {
+      ...user.result,
       access_token: await this.jwtService.signAsync(payload, {
         secret: jwtConstants.secret,
         expiresIn: '2h',
       }),
-    };
+    });
   }
 }
