@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsInt, IsNotEmpty } from 'class-validator';
 
-export class SearchFreightDto {
+export class ListFreightDto {
   @IsNotEmpty()
   @IsInt()
   @Transform((params) => parseInt(params.value))

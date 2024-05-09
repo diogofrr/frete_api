@@ -9,12 +9,14 @@ import { Role } from '../roles/enum/role.enum';
 import { DeliveryPersonService } from '../delivery-person/delivery-person.service';
 import { CreateDeliveryPersonDto } from '../delivery-person/dto/create-delivery-person.dto';
 import { ResponseDto } from '../global/dto/response.dto';
+import { CompanyService } from '../company/company.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private deliveryPerson: DeliveryPersonService,
+    private company: CompanyService,
     private jwtService: JwtService,
   ) {}
 
@@ -56,6 +58,8 @@ export class AuthService {
 
     if (user.result.profile_type === Role.DELIVERY) {
       await this.deliveryPerson.create(deliveryPersonDto);
+    } else if (user.result.profile_type === Role.COMPANY) {
+      await this.company.create(deliveryPersonDto);
     }
 
     return new ResponseDto(false, 'Account created successfully', {

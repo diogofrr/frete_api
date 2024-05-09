@@ -7,6 +7,7 @@ import { jwtConstants } from './constants';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { DeliveryPersonService } from '../delivery-person/delivery-person.service';
+import { CompanyService } from '../company/company.service';
 
 @Module({
   imports: [
@@ -24,18 +25,8 @@ import { DeliveryPersonService } from '../delivery-person/delivery-person.servic
     UsersService,
     PrismaService,
     DeliveryPersonService,
+    CompanyService,
   ],
   exports: [AuthService],
 })
 export class AuthModule {}
-
-// PASSAR PARA O MODULE PARA TORNAR TUDO PROTEGIDO
-// providers: [
-//   {
-//     provide: APP_GUARD,
-//     useClass: AuthGuard,
-//   },
-// ],
-//                    OU
-// PARA PROTEGER APENAS UMA ROTA
-// @UseGuards(AuthGuard)
