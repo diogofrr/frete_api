@@ -9,5 +9,5 @@ export class ListMyFreightsDto {
   @IsNotEmpty()
   @IsInt()
   @Transform((params) => parseInt(params.value))
-  pageSize: number;
+  page_size: number;
 }

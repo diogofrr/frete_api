@@ -1,8 +1,9 @@
-import { IsInt, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 
 export class RequestFreightDto {
-  @IsNumber()
-  @IsInt()
   @IsNotEmpty()
-  freightId: number;
+  freightRegisterId: string;
+
+  @IsNotEmpty()
+  vehicleId: string;
 }

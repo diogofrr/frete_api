@@ -1,0 +1,5 @@
+export enum StatusShippingEnum {
+  AGUARDANDO_COLETA = 'AGUARDANDO_COLETA',
+  A_CAMINHO = 'A_CAMINHO',
+  ENTREGUE = 'ENTREGUE',
+}

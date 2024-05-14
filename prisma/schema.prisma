@@ -14,16 +14,16 @@ datasource db {
 }
 
 model Company {
-  id Int @id @default(autoincrement())
-  user_id Int
+  id String @id @default(uuid())
+  user_id String
   user User @relation(fields: [user_id], references: [id])
-  freight_registers FreightRegistration[]
+  freight_registers FreightRegister[]
 
   @@map("company")
 }
 
 model User {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
   name String
   email String
   password String
@@ -35,57 +35,73 @@ model User {
 }
 
 model DeliveryPerson {
-  id Int @id @default(autoincrement())
-  user_id Int
+  id String @id @default(uuid())
+  user_id String
   user User @relation(fields: [user_id], references: [id])
-  freight_registers FreightRegistration[]
+  freight_registers FreightRequest[]
   vehicle_registers VehicleRegistration[]
 
   @@map("delivery_person")
 }
 
 model Vehicle {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
   vehicle_type String
+  name String
+  model String
+  brand String
+  year Int
   classif_weight Int
   vehicle_registers VehicleRegistration[]
 
-    @@map("vehicle")
+  @@map("vehicle")
 
 }
 
 model Freight {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
   min_weight Int
   distance Int
-  status String
   tax Float
   value Float
   total_value Float
-  freight_registers FreightRegistration[]
+  status_request String
+  status_shipping String
+  freight_registers FreightRegister[]
 
   @@map("freight")
 }
 
-model FreightRegistration {
-  id Int @id @default(autoincrement())
-  freight_id Int
+model FreightRegister {
+  id String @id @default(uuid())
+  freight_id String
   freight Freight @relation(fields: [freight_id], references: [id])
-  company_id Int
+  company_id String
   company Company @relation(fields: [company_id], references: [id])
-  delivery_person_id Int
-  delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
-  status_request String
-
+  freight_requests FreightRequest[]
+  
   @@map("freight_registration")
 }
 
-model VehicleRegistration {
-  id Int @id @default(autoincrement())
-  delivery_person_id Int
+model FreightRequest {
+  id String @id @default(uuid())
+  delivery_person_id String
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
-  vehicle_id Int
+  vehicle_register_id String
+  vehicle_register VehicleRegistration @relation(fields: [vehicle_register_id], references: [id])
+  freight_register_id String
+  freight_register FreightRegister @relation(fields: [freight_register_id], references: [id])
+
+  @@map("freight_request")
+}
+
+model VehicleRegistration {
+  id String @id @default(uuid())
+  delivery_person_id String
+  delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
+  vehicle_id String
   vehicle Vehicle @relation(fields: [vehicle_id], references: [id])
+  freight_requests FreightRequest[]
 
   @@map("vehicle_registration")
 }

@@ -21,38 +21,49 @@ export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
   @Post('create-freight/')
   create(@Req() req, @Body() createFreightDto: CreateFreightDto) {
-    return this.companyService.createFreight(createFreightDto, req.user.sub);
+    return this.companyService.createFreight(
+      createFreightDto,
+      req.user.profile_id,
+    );
   }
 
   @Get('find-one-freight/')
-  @UsePipes(new ValidationPipe({ transform: true }))
-  findOne(@Req() req, @Param('id') id: number) {
-    return this.companyService.findOneFreight(id, req.user.id);
+  findOne(@Req() req, @Param('id') id: string) {
+    return this.companyService.findOneFreight(id, req.user.profile_id);
   }
 
   @Get('list-my-freights/')
   @UsePipes(new ValidationPipe({ transform: true }))
   listMyFreights(@Req() req, @Query() listMyFreightsDto: ListMyFreightsDto) {
-    return this.companyService.listMyFreights(listMyFreightsDto, req.user.sub);
+    return this.companyService.listMyFreights(
+      listMyFreightsDto,
+      req.user.profile_id,
+    );
   }
 
   @Get('requests/')
   requests(@Req() req) {
-    return this.companyService.requests(req.user.sub);
+    return this.companyService.requests(req.user.profile_id);
   }
 
   @Post('accept-request/')
-  acceptRequest(@Req() req, @Body() id: number) {
-    return this.companyService.acceptRequest(id, req.user.sub);
+  acceptRequest(@Req() req, @Body() id: string) {
+    return this.companyService.acceptRequest(id, req.user.profile_id);
   }
 
   @Patch('update-info/')
   updateStatus(@Req() req, @Body() updateFreightDto: UpdateFreightDto) {
-    return this.companyService.updateFreight(updateFreightDto, req.user.sub);
+    return this.companyService.updateFreight(
+      updateFreightDto,
+      req.user.profile_id,
+    );
   }
 
   @Delete('delete-freight/')
   deleteFreight(@Req() req, @Body() deleteFreightDto: DeleteFreightDto) {
-    return this.companyService.deleteFreight(deleteFreightDto, req.user.sub);
+    return this.companyService.deleteFreight(
+      deleteFreightDto,
+      req.user.profile_id,
+    );
   }
 }

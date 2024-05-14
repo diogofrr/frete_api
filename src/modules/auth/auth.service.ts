@@ -32,8 +32,18 @@ export class AuthService {
       sub: user.result.id,
       email: user.result.email,
       profile_type: user.result.profile_type,
+      profile_id: null,
     };
+
     delete user.result.password;
+
+    if (user.result.profile_type === Role.DELIVERY) {
+      const profileData = await this.deliveryPerson.findOne(user.result.id);
+      payload.profile_id = profileData.result.id;
+    } else if (user.result.profile_type === Role.COMPANY) {
+      const profileData = await this.company.findOne(user.result.id);
+      payload.profile_id = profileData.result.id;
+    }
 
     return new ResponseDto(false, 'Successfully logged in', {
       ...user.result,
@@ -51,15 +61,18 @@ export class AuthService {
       sub: user.result.id,
       email: user.result.email,
       profile_type: user.result.profile_type,
+      profile_id: null,
     };
     delete user.result.password;
 
     const deliveryPersonDto = new CreateDeliveryPersonDto(user.result.id);
 
     if (user.result.profile_type === Role.DELIVERY) {
-      await this.deliveryPerson.create(deliveryPersonDto);
+      const profileData = await this.deliveryPerson.create(deliveryPersonDto);
+      payload.profile_id = profileData.result.id;
     } else if (user.result.profile_type === Role.COMPANY) {
-      await this.company.create(deliveryPersonDto);
+      const profileData = await this.company.create(deliveryPersonDto);
+      payload.profile_id = profileData.result.id;
     }
 
     return new ResponseDto(false, 'Account created successfully', {

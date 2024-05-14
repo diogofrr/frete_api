@@ -4,11 +4,11 @@ import { CreateCompanyDto } from './dto/create-company.dto';
 import { ResponseDto } from '../global/dto/response.dto';
 import { freightTaxCalc } from '../freight/helper/freight-tax-calc';
 import { CreateFreightDto } from './dto/create-freight.dto';
-import { Status as StatusFreight } from '../freight/enum/freight.enum';
-import { Status as StatusFreightRegistration } from '../freight/enum/freight-register.enum';
+import { StatusRequestEnum } from '../freight/enum/freight-register-status.enum';
 import { UpdateFreightDto } from './dto/update-freight.dto';
 import { DeleteFreightDto } from './dto/delete-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
+import { StatusShippingEnum } from '../freight/enum/update-freight-status.enum';
 
 @Injectable()
 export class CompanyService {
@@ -32,9 +32,23 @@ export class CompanyService {
     return new ResponseDto(false, 'Company created successfully', company);
   }
 
+  async findOne(userId: string): Promise<ResponseDto> {
+    const company = await this.prisma.company.findFirst({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (!company) {
+      throw new HttpException('Company not found', HttpStatus.NOT_FOUND);
+    }
+
+    return new ResponseDto(false, 'Company found successfully', company);
+  }
+
   async createFreight(
     createFreightDto: CreateFreightDto,
-    userId: number,
+    userId: string,
   ): Promise<ResponseDto> {
     const parcialValue =
       createFreightDto.distance * createFreightDto.min_weight;
@@ -42,36 +56,36 @@ export class CompanyService {
 
     const updatedFreightInfo = {
       ...createFreightDto,
-      status: StatusFreight.PENDING,
       value: parcialValue,
       tax: tax,
       total_value: parcialValue + tax,
+      status_shipping: StatusShippingEnum.AGUARDANDO_COLETA,
+      status_request: StatusRequestEnum.DISPONIVEL,
     };
 
     const freight = await this.prisma.freight.create({
-      data: updatedFreightInfo,
-    });
-
-    const freightRegister = await this.prisma.freightRegistration.create({
       data: {
-        status_request: StatusFreight.PENDING,
-        freight_id: freight.id,
-        company_id: userId,
-        delivery_person_id: null,
+        ...updatedFreightInfo,
+        freight_registers: {
+          create: [
+            {
+              company_id: userId,
+            },
+          ],
+        },
       },
     });
 
     return new ResponseDto(false, 'Freight created successfully', {
       freight,
-      register: freightRegister,
     });
   }
 
   async updateFreight(
     updateFreightDto: UpdateFreightDto,
-    userId: number,
+    userId: string,
   ): Promise<ResponseDto> {
-    const freightRegister = await this.prisma.freightRegistration.findFirst({
+    const freightRegister = await this.prisma.freightRegister.findFirst({
       where: {
         company_id: userId,
         freight_id: updateFreightDto.id,
@@ -108,8 +122,8 @@ export class CompanyService {
     );
   }
 
-  async findOneFreight(id: number, userId: number): Promise<ResponseDto> {
-    const freight = await this.prisma.freightRegistration.findFirst({
+  async findOneFreight(id: string, userId: string): Promise<ResponseDto> {
+    const freight = await this.prisma.freightRegister.findFirst({
       where: {
         freight_id: id,
         company_id: userId,
@@ -129,11 +143,11 @@ export class CompanyService {
     return new ResponseDto(false, 'Freight successfully found', freight);
   }
 
-  async listMyFreights(listMyFreightsDto: ListMyFreightsDto, userId: number) {
-    const { page, pageSize } = listMyFreightsDto;
+  async listMyFreights(listMyFreightsDto: ListMyFreightsDto, userId: string) {
+    const { page, page_size: pageSize } = listMyFreightsDto;
     const offset = (page - 1) * pageSize;
 
-    const freights = await this.prisma.freightRegistration.findMany({
+    const freights = await this.prisma.freightRegister.findMany({
       skip: offset,
       take: pageSize,
       where: {
@@ -150,25 +164,59 @@ export class CompanyService {
     return new ResponseDto(false, 'Freights found successfully', freights);
   }
 
-  async requests(userId: number) {
-    const freights = await this.prisma.freightRegistration.findMany({
+  async requests(userId: string) {
+    const freights = await this.prisma.freightRequest.findMany({
       where: {
-        company_id: userId,
-        status_request: StatusFreightRegistration.REQUESTED,
+        freight_register: {
+          company_id: userId,
+          freight: {
+            status_request: StatusRequestEnum.SOLICITADO,
+          },
+        },
       },
       include: {
-        freight: true,
+        delivery_person: {
+          select: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        freight_register: {
+          include: {
+            freight: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
     return new ResponseDto(false, '', freights);
   }
 
-  async acceptRequest(freightId: number, userId: number) {
-    const freight = await this.prisma.freightRegistration.findFirst({
+  async acceptRequest(freightId: string, userId: string) {
+    const freight = await this.prisma.freightRequest.findFirst({
       where: {
-        freight_id: freightId,
-        company_id: userId,
+        freight_register: {
+          freight_id: freightId,
+          company_id: userId,
+        },
+      },
+      include: {
+        freight_register: {
+          include: {
+            freight: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -176,20 +224,20 @@ export class CompanyService {
       throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.prisma.freightRegistration.update({
+    await this.prisma.freight.update({
       where: {
-        id: freight.id,
+        id: freight.freight_register.freight.id,
       },
       data: {
-        status_request: StatusFreightRegistration.APPROVED,
+        status_request: StatusRequestEnum.APROVADO,
       },
     });
 
     return new ResponseDto(false, 'Request accepted successfully', null);
   }
 
-  async deleteFreight(deleteFreightDto: DeleteFreightDto, userId: number) {
-    const freight = await this.prisma.freightRegistration.findFirst({
+  async deleteFreight(deleteFreightDto: DeleteFreightDto, userId: string) {
+    const freight = await this.prisma.freightRegister.findFirst({
       where: {
         freight_id: deleteFreightDto.freight_id,
         company_id: userId,
@@ -200,17 +248,31 @@ export class CompanyService {
       throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.prisma.freightRegistration.delete({
-      where: {
-        id: freight.id,
-      },
-    });
+    await this.prisma
+      .$transaction(async (tx) => {
+        await tx.freight.delete({
+          where: {
+            id: deleteFreightDto.freight_id,
+          },
+        });
 
-    await this.prisma.freight.delete({
-      where: {
-        id: deleteFreightDto.freight_id,
-      },
-    });
+        await tx.freightRegister.deleteMany({
+          where: {
+            freight_id: freight.id,
+          },
+        });
+
+        await tx.freightRequest.deleteMany({
+          where: {
+            freight_register: {
+              freight_id: freight.id,
+            },
+          },
+        });
+      })
+      .catch(() => {
+        throw new HttpException('Freight not deleted', HttpStatus.BAD_REQUEST);
+      });
 
     return new ResponseDto(false, 'Freight deleted successfully', null);
   }

@@ -1,0 +1,8 @@
+export enum Vehicles {
+  CAMINHONETE = 'CAMINHONETE',
+  MOTO = 'MOTO',
+  CARRO = 'CARRO',
+  VAN = 'VAN',
+  BICICLETA = 'BICICLETA',
+  CAMINHAO = 'CAMINHAO',
+}
