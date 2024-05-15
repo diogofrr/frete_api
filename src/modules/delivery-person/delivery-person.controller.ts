@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { DeliveryPersonService } from './delivery-person.service';
-import { ListAllFreightsDto } from './dto/list-all-freights.dto';
+import { ListAllAvailableFreightsDto } from './dto/list-all-available-freights.dto';
 import { RequestFreightDto } from './dto/request-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
 import { UpdateFreightStatusDto } from './dto/update-freight-status.dto';
@@ -22,10 +22,14 @@ import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 export class DeliveryPersonController {
   constructor(private readonly deliveryPersonService: DeliveryPersonService) {}
 
-  @Get('list-all-freights/')
+  @Get('list-all-available-freights/')
   @UsePipes(new ValidationPipe({ transform: true }))
-  listAllFreights(@Query() listAllFreightsDto: ListAllFreightsDto) {
-    return this.deliveryPersonService.listAllFreights(listAllFreightsDto);
+  listAllAvailableFreights(
+    @Query() listAllAvailableFreightsDto: ListAllAvailableFreightsDto,
+  ) {
+    return this.deliveryPersonService.listAllAvailableFreights(
+      listAllAvailableFreightsDto,
+    );
   }
 
   @Get('find-one-freight/')
@@ -48,17 +52,6 @@ export class DeliveryPersonController {
     return this.deliveryPersonService.listVehicles(req.user.profile_id);
   }
 
-  @Post('update-freight-status/')
-  updateStatus(
-    @Req() req,
-    @Body() updateFreightStatusDto: UpdateFreightStatusDto,
-  ) {
-    return this.deliveryPersonService.updateFreightStatus(
-      updateFreightStatusDto,
-      req.user.profile_id,
-    );
-  }
-
   @Post('create-vehicle/')
   createVehicle(@Req() req, @Body() createVehicleDto: CreateVehicleDto) {
     return this.deliveryPersonService.createVehicle(
@@ -67,10 +60,21 @@ export class DeliveryPersonController {
     );
   }
 
-  @Patch('request-freight/')
+  @Post('request-freight/')
   requestFreight(@Req() req, @Body() requestFreightDto: RequestFreightDto) {
     return this.deliveryPersonService.requestFreight(
       requestFreightDto,
+      req.user.profile_id,
+    );
+  }
+
+  @Patch('update-freight-status/')
+  updateStatus(
+    @Req() req,
+    @Body() updateFreightStatusDto: UpdateFreightStatusDto,
+  ) {
+    return this.deliveryPersonService.updateFreightStatus(
+      updateFreightStatusDto,
       req.user.profile_id,
     );
   }

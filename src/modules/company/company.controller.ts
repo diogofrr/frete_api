@@ -16,6 +16,7 @@ import { CreateFreightDto } from './dto/create-freight.dto';
 import { UpdateFreightDto } from './dto/update-freight.dto';
 import { DeleteFreightDto } from './dto/delete-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
+import { AcceptFreightDto } from './dto/accept-freight.dto';
 @Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
@@ -46,14 +47,17 @@ export class CompanyController {
     return this.companyService.requests(req.user.profile_id);
   }
 
-  @Post('accept-request/')
-  acceptRequest(@Req() req, @Body() id: string) {
-    return this.companyService.acceptRequest(id, req.user.profile_id);
+  @Patch('accept-request/')
+  acceptRequest(@Req() req, @Body() acceptFreightDto: AcceptFreightDto) {
+    return this.companyService.acceptRequest(
+      acceptFreightDto,
+      req.user.profile_id,
+    );
   }
 
   @Patch('update-info/')
-  updateStatus(@Req() req, @Body() updateFreightDto: UpdateFreightDto) {
-    return this.companyService.updateFreight(
+  updateInfo(@Req() req, @Body() updateFreightDto: UpdateFreightDto) {
+    return this.companyService.updateFreightInfo(
       updateFreightDto,
       req.user.profile_id,
     );

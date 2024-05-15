@@ -5,5 +5,5 @@ export class RequestFreightDto {
   freightRegisterId: string;
 
   @IsNotEmpty()
-  vehicleId: string;
+  vehicleRegisterId: string;
 }

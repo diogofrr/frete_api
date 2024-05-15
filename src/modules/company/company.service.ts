@@ -9,6 +9,7 @@ import { UpdateFreightDto } from './dto/update-freight.dto';
 import { DeleteFreightDto } from './dto/delete-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
 import { StatusShippingEnum } from '../freight/enum/update-freight-status.enum';
+import { AcceptFreightDto } from './dto/accept-freight.dto';
 
 @Injectable()
 export class CompanyService {
@@ -81,7 +82,7 @@ export class CompanyService {
     });
   }
 
-  async updateFreight(
+  async updateFreightInfo(
     updateFreightDto: UpdateFreightDto,
     userId: string,
   ): Promise<ResponseDto> {
@@ -90,14 +91,20 @@ export class CompanyService {
         company_id: userId,
         freight_id: updateFreightDto.id,
       },
+      include: {
+        freight: true,
+      },
     });
 
     if (!freightRegister) {
       throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
     }
 
-    const parcialValue =
-      updateFreightDto.distance * updateFreightDto.min_weight;
+    const minWeight =
+      updateFreightDto?.min_weight ?? freightRegister.freight.min_weight;
+    const distance =
+      updateFreightDto?.distance ?? freightRegister.freight.distance;
+    const parcialValue = distance * minWeight;
     const tax = freightTaxCalc(parcialValue, updateFreightDto.distance);
 
     const updatedFreight = await this.prisma.freight.update({
@@ -105,6 +112,8 @@ export class CompanyService {
         id: updateFreightDto.id,
       },
       data: {
+        min_weight: minWeight,
+        distance: distance,
         value: parcialValue,
         tax: tax,
         total_value: parcialValue + tax,
@@ -199,11 +208,11 @@ export class CompanyService {
     return new ResponseDto(false, '', freights);
   }
 
-  async acceptRequest(freightId: string, userId: string) {
+  async acceptRequest(acceptFreightDto: AcceptFreightDto, userId: string) {
     const freight = await this.prisma.freightRequest.findFirst({
       where: {
         freight_register: {
-          freight_id: freightId,
+          freight_id: acceptFreightDto.freightId,
           company_id: userId,
         },
       },
@@ -245,34 +254,35 @@ export class CompanyService {
     });
 
     if (!freight) {
-      throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Access not allowed or freight not found.',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    await this.prisma
-      .$transaction(async (tx) => {
-        await tx.freight.delete({
-          where: {
-            id: deleteFreightDto.freight_id,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.freightRequest.deleteMany({
+        where: {
+          freight_register: {
+            freight_id: freight.freight_id,
           },
-        });
-
-        await tx.freightRegister.deleteMany({
-          where: {
-            freight_id: freight.id,
-          },
-        });
-
-        await tx.freightRequest.deleteMany({
-          where: {
-            freight_register: {
-              freight_id: freight.id,
-            },
-          },
-        });
-      })
-      .catch(() => {
-        throw new HttpException('Freight not deleted', HttpStatus.BAD_REQUEST);
+        },
       });
+
+      await tx.freightRegister.deleteMany({
+        where: {
+          freight: {
+            id: freight.freight_id,
+          },
+        },
+      });
+
+      await tx.freight.delete({
+        where: {
+          id: deleteFreightDto.freight_id,
+        },
+      });
+    });
 
     return new ResponseDto(false, 'Freight deleted successfully', null);
   }

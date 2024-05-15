@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateDeliveryPersonDto } from './dto/create-delivery-person.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { ResponseDto } from '../global/dto/response.dto';
-import { ListAllFreightsDto } from './dto/list-all-freights.dto';
+import { ListAllAvailableFreightsDto } from './dto/list-all-available-freights.dto';
 import { StatusRequestEnum } from '../freight/enum/freight-register-status.enum';
 import { RequestFreightDto } from './dto/request-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
@@ -45,7 +45,7 @@ export class DeliveryPersonService {
   async findOne(userId: string): Promise<ResponseDto> {
     const deliveryPerson = await this.prisma.deliveryPerson.findFirst({
       where: {
-        id: userId,
+        user_id: userId,
       },
     });
 
@@ -63,41 +63,35 @@ export class DeliveryPersonService {
     );
   }
 
-  async listAllFreights(
-    listAllFreightsDto: ListAllFreightsDto,
+  async listAllAvailableFreights(
+    listAllAvailableFreightsDto: ListAllAvailableFreightsDto,
   ): Promise<ResponseDto> {
-    const { page, pageSize } = listAllFreightsDto;
+    const { page, pageSize } = listAllAvailableFreightsDto;
 
     const offset = (page - 1) * pageSize;
-    const allFreightsRegisters = await this.prisma.freightRequest.findMany({
+    const allFreightsRegisters = await this.prisma.freightRegister.findMany({
       skip: offset,
       take: pageSize,
       where: {
-        freight_register: {
-          freight: {
-            status_request: StatusRequestEnum.DISPONIVEL,
-          },
+        freight: {
+          status_request: StatusRequestEnum.DISPONIVEL,
         },
       },
       include: {
-        freight_register: {
-          include: {
-            company: {
+        company: {
+          select: {
+            user: {
               select: {
-                user: {
-                  select: {
-                    name: true,
-                  },
-                },
+                name: true,
               },
             },
-            freight: {
-              select: {
-                distance: true,
-                total_value: true,
-                min_weight: true,
-              },
-            },
+          },
+        },
+        freight: {
+          select: {
+            distance: true,
+            total_value: true,
+            min_weight: true,
           },
         },
       },
@@ -158,9 +152,21 @@ export class DeliveryPersonService {
     const freightRequest = await this.prisma.$transaction(async (tx) => {
       const freightRequest = await tx.freightRequest.create({
         data: {
-          delivery_person_id: userId,
-          vehicle_register_id: requestFreightDto.vehicleId,
-          freight_register_id: requestFreightDto.freightRegisterId,
+          delivery_person: {
+            connect: {
+              id: userId,
+            },
+          },
+          vehicle_register: {
+            connect: {
+              id: requestFreightDto.vehicleRegisterId,
+            },
+          },
+          freight_register: {
+            connect: {
+              id: requestFreightDto.freightRegisterId,
+            },
+          },
         },
         include: {
           freight_register: {
@@ -203,15 +209,18 @@ export class DeliveryPersonService {
 
     const offset = (page - 1) * pageSize;
 
-    const myFreights = await this.prisma.freightRegister.findMany({
+    const myFreights = await this.prisma.freightRequest.findMany({
       skip: offset,
       take: pageSize,
       where: {
-        company_id: userId,
+        delivery_person_id: userId,
       },
       include: {
-        freight: true,
-        freight_requests: true,
+        freight_register: {
+          include: {
+            freight: true,
+          },
+        },
       },
       orderBy: {
         id: 'desc',
@@ -255,7 +264,7 @@ export class DeliveryPersonService {
         id: freight.freight_register.freight.id,
       },
       data: {
-        status_request: updateFreightStatusDto.status,
+        status_shipping: updateFreightStatusDto.status,
       },
     });
 
@@ -269,23 +278,24 @@ export class DeliveryPersonService {
   async createVehicle(createVehicleDto: CreateVehicleDto, userId: string) {
     const vehicle = await this.prisma.vehicle.create({
       data: {
-        ...createVehicleDto,
+        brand: createVehicleDto.brand,
+        model: createVehicleDto.model,
+        year: createVehicleDto.year,
+        name: createVehicleDto.name,
         classif_weight: createVehicleDto.classifWeight,
         vehicle_type: createVehicleDto.vehicleType,
+        vehicle_registers: {
+          create: {
+            delivery_person_id: userId,
+          },
+        },
+      },
+      include: {
+        vehicle_registers: true,
       },
     });
 
-    const vehicleRegister = await this.prisma.vehicleRegistration.create({
-      data: {
-        delivery_person_id: userId,
-        vehicle_id: vehicle.id,
-      },
-    });
-
-    return new ResponseDto(false, 'Vehicle created successfully', {
-      vehicle,
-      vehicleRegister,
-    });
+    return new ResponseDto(false, 'Vehicle created successfully', vehicle);
   }
 
   async updateVehicle(updateVehicleDto: UpdateVehicleDto, userId: string) {
@@ -305,7 +315,10 @@ export class DeliveryPersonService {
         id: updateVehicleDto.id,
       },
       data: {
-        ...updateVehicleDto,
+        brand: updateVehicleDto.brand,
+        model: updateVehicleDto.model,
+        year: updateVehicleDto.year,
+        name: updateVehicleDto.name,
         classif_weight: updateVehicleDto.classifWeight,
         vehicle_type: updateVehicleDto.vehicleType,
       },

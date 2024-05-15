@@ -16,6 +16,10 @@ export class CreateVehicleDto {
   vehicleType: Vehicles;
 
   @IsNotEmpty()
+  @IsNumber()
+  @IsInt()
+  @Max(10)
+  @Min(1)
   classifWeight: number;
 
   @IsNotEmpty()

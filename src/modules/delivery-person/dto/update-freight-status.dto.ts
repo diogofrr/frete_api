@@ -1,11 +1,11 @@
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { StatusRequestEnum } from '../../freight/enum/freight-register-status.enum';
+import { StatusShippingEnum } from 'src/modules/freight/enum/update-freight-status.enum';
 
 export class UpdateFreightStatusDto {
   @IsNotEmpty()
   freightRequestId: string;
 
   @IsNotEmpty()
-  @IsEnum(StatusRequestEnum)
-  status: StatusRequestEnum;
+  @IsEnum(StatusShippingEnum)
+  status: StatusShippingEnum;
 }
