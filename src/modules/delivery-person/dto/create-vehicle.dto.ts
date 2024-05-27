@@ -33,6 +33,18 @@ export class CreateVehicleDto {
   brand: string;
 
   @IsNotEmpty()
+  owner: string;
+
+  @IsNotEmpty()
+  document: string;
+
+  @IsNotEmpty()
+  plate: string;
+
+  @IsNotEmpty()
+  color: string;
+
+  @IsNotEmpty()
   @IsNumber()
   @IsInt()
   @Min(1900)

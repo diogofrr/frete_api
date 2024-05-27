@@ -3,13 +3,13 @@ import { CreateDeliveryPersonDto } from './dto/create-delivery-person.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { ResponseDto } from '../global/dto/response.dto';
 import { ListAllAvailableFreightsDto } from './dto/list-all-available-freights.dto';
-import { StatusRequestEnum } from '../freight/enum/freight-register-status.enum';
+import { StatusRequestEnum } from '../company/enum/freight-register-status.enum';
 import { RequestFreightDto } from './dto/request-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
 import { UpdateFreightStatusDto } from './dto/update-freight-status.dto';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { StatusShippingEnum } from '../freight/enum/update-freight-status.enum';
+import { StatusShippingEnum } from './enum/update-freight-status.enum';
 
 @Injectable()
 export class DeliveryPersonService {
@@ -152,6 +152,7 @@ export class DeliveryPersonService {
     const freightRequest = await this.prisma.$transaction(async (tx) => {
       const freightRequest = await tx.freightRequest.create({
         data: {
+          updated_at: new Date(),
           delivery_person: {
             connect: {
               id: userId,
@@ -181,15 +182,19 @@ export class DeliveryPersonService {
         },
       });
 
-      const freight = await tx.freight.update({
-        where: {
-          id: freightRequest.freight_register.freight.id,
-        },
-        data: {
-          status_request: StatusRequestEnum.SOLICITADO,
-          status_shipping: StatusShippingEnum.AGUARDANDO_COLETA,
-        },
-      });
+      const freight = await tx.freight
+        .update({
+          where: {
+            id: freightRequest.freight_register.freight.id,
+          },
+          data: {
+            status_request: StatusRequestEnum.SOLICITADO,
+            status_shipping: StatusShippingEnum.AGUARDANDO_COLETA,
+          },
+        })
+        .catch(() => {
+          throw new HttpException('Failed to request', HttpStatus.BAD_REQUEST);
+        });
 
       return {
         freight,
@@ -282,11 +287,16 @@ export class DeliveryPersonService {
         model: createVehicleDto.model,
         year: createVehicleDto.year,
         name: createVehicleDto.name,
+        color: createVehicleDto.color,
+        document: createVehicleDto.document,
+        owner: createVehicleDto.owner,
+        plate: createVehicleDto.plate,
         classif_weight: createVehicleDto.classifWeight,
         vehicle_type: createVehicleDto.vehicleType,
         vehicle_registers: {
           create: {
             delivery_person_id: userId,
+            updated_at: new Date(),
           },
         },
       },

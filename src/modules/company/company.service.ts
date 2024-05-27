@@ -2,13 +2,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { ResponseDto } from '../global/dto/response.dto';
-import { freightTaxCalc } from '../freight/helper/freight-tax-calc';
+import { freightTaxCalc } from '../global/helper/freight-tax-calc';
 import { CreateFreightDto } from './dto/create-freight.dto';
-import { StatusRequestEnum } from '../freight/enum/freight-register-status.enum';
+import { StatusRequestEnum } from './enum/freight-register-status.enum';
 import { UpdateFreightDto } from './dto/update-freight.dto';
 import { DeleteFreightDto } from './dto/delete-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
-import { StatusShippingEnum } from '../freight/enum/update-freight-status.enum';
+import { StatusShippingEnum } from '../delivery-person/enum/update-freight-status.enum';
 import { AcceptFreightDto } from './dto/accept-freight.dto';
 
 @Injectable()
@@ -68,11 +68,20 @@ export class CompanyService {
       data: {
         ...updatedFreightInfo,
         freight_registers: {
-          create: [
-            {
-              company_id: userId,
-            },
-          ],
+          create: {
+            company_id: userId,
+          },
+        },
+        address: {
+          create: {
+            city: createFreightDto.city,
+            state: createFreightDto.state,
+            street: createFreightDto.street,
+            address_number: createFreightDto.address_number,
+            complement: createFreightDto.complement,
+            zipcode: createFreightDto.zipcode,
+            neighborhood: createFreightDto.neighborhood,
+          },
         },
       },
     });

@@ -1,8 +1,9 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
-import { SignUpDto } from './dto/sign-up.dto';
+import { SignUpCompanyDto } from './dto/sign-up-company.dto';
 import { Public } from './constants';
+import { SignUpDeliveryPersonDto } from './dto/sign-up-delivery-person.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -15,8 +16,14 @@ export class AuthController {
   }
 
   @Public()
-  @Post('register')
-  signUp(@Body() signUpDto: SignUpDto) {
-    return this.authService.signUp(signUpDto);
+  @Post('register-company')
+  signUpCompany(@Body() signUpCompanyDto: SignUpCompanyDto) {
+    return this.authService.singUpCompany(signUpCompanyDto);
+  }
+
+  @Public()
+  @Post('register-delivery')
+  signUp(@Body() signUpDeliveryPersonDto: SignUpDeliveryPersonDto) {
+    return this.authService.signUpDelivery(signUpDeliveryPersonDto);
   }
 }

@@ -15,7 +15,11 @@ datasource db {
 
 model Company {
   id String @id @default(uuid())
-  user_id String
+  cnpj String
+  type String
+  social_name String
+  comercial_email String
+  user_id String @unique
   user User @relation(fields: [user_id], references: [id])
   freight_registers FreightRegister[]
 
@@ -26,17 +30,26 @@ model User {
   id String @id @default(uuid())
   name String
   email String
+  tel String
   password String
   profile_type String
-  company_users Company[]
-  delivery_person_users DeliveryPerson[]
+  company_users Company?
+  delivery_person_users DeliveryPerson?
+  notifications Notifications[]
+  created_at DateTime @default(now())
+  updated_at DateTime
 
   @@map("users")
 }
 
 model DeliveryPerson {
   id String @id @default(uuid())
-  user_id String
+  cpf String
+  cnh String
+  bank String
+  account_number String
+  account_type String
+  user_id String @unique
   user User @relation(fields: [user_id], references: [id])
   freight_registers FreightRequest[]
   vehicle_registers VehicleRegistration[]
@@ -48,11 +61,15 @@ model Vehicle {
   id String @id @default(uuid())
   vehicle_type String
   name String
+  owner String
+  document String
+  plate String
+  color String
   model String
   brand String
   year Int
   classif_weight Int
-  vehicle_registers VehicleRegistration[]
+  vehicle_registers VehicleRegistration?
 
   @@map("vehicle")
 
@@ -60,25 +77,31 @@ model Vehicle {
 
 model Freight {
   id String @id @default(uuid())
+  name String
+  description String
   min_weight Int
   distance Int
   tax Float
   value Float
+  fragile Boolean
+  extra_observation String
   total_value Float
   status_request String
   status_shipping String
-  freight_registers FreightRegister[]
+  freight_registers FreightRegister?
+  address Address?
 
   @@map("freight")
 }
 
 model FreightRegister {
   id String @id @default(uuid())
-  freight_id String
+  freight_id String @unique
   freight Freight @relation(fields: [freight_id], references: [id])
   company_id String
   company Company @relation(fields: [company_id], references: [id])
-  freight_requests FreightRequest[]
+  freight_requests FreightRequest?
+  created_at DateTime @default(now())
   
   @@map("freight_registration")
 }
@@ -89,8 +112,10 @@ model FreightRequest {
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
   vehicle_register_id String
   vehicle_register VehicleRegistration @relation(fields: [vehicle_register_id], references: [id])
-  freight_register_id String
+  freight_register_id String @unique
   freight_register FreightRegister @relation(fields: [freight_register_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime
 
   @@map("freight_request")
 }
@@ -99,9 +124,38 @@ model VehicleRegistration {
   id String @id @default(uuid())
   delivery_person_id String
   delivery_person DeliveryPerson @relation(fields: [delivery_person_id], references: [id])
-  vehicle_id String
+  vehicle_id String @unique
   vehicle Vehicle @relation(fields: [vehicle_id], references: [id])
   freight_requests FreightRequest[]
+  created_at DateTime @default(now())
+  updated_at DateTime
 
   @@map("vehicle_registration")
+}
+
+model Notifications {
+  id Int @id @default(autoincrement())
+  title String
+  message String
+  image String
+  user_id String
+  user User @relation(fields: [user_id], references: [id])
+  created_at DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model Address {
+  id String @id @default(uuid())
+  zipcode String
+  street String
+  address_number String
+  complement String
+  neighborhood String
+  city String
+  state String
+  freight_id String @unique
+  freight Freight @relation(fields: [freight_id], references: [id])
+
+   @@map("address")
 }
