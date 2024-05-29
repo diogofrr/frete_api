@@ -87,13 +87,7 @@ export class DeliveryPersonService {
             },
           },
         },
-        freight: {
-          select: {
-            distance: true,
-            total_value: true,
-            min_weight: true,
-          },
-        },
+        freight: true,
       },
       orderBy: {
         id: 'desc',
@@ -117,17 +111,7 @@ export class DeliveryPersonService {
             },
           },
         },
-        freight: {
-          select: {
-            distance: true,
-            total_value: true,
-            min_weight: true,
-            tax: true,
-            value: true,
-            status_request: true,
-            status_shipping: true,
-          },
-        },
+        freight: true,
       },
     });
 
@@ -149,41 +133,41 @@ export class DeliveryPersonService {
     requestFreightDto: RequestFreightDto,
     userId: string,
   ): Promise<ResponseDto> {
-    const freightRequest = await this.prisma.$transaction(async (tx) => {
-      const freightRequest = await tx.freightRequest.create({
-        data: {
-          updated_at: new Date(),
-          delivery_person: {
-            connect: {
-              id: userId,
+    const freightRequest = await this.prisma
+      .$transaction(async (tx) => {
+        const freightRequest = await tx.freightRequest.create({
+          data: {
+            updated_at: new Date(),
+            delivery_person: {
+              connect: {
+                id: userId,
+              },
+            },
+            vehicle_register: {
+              connect: {
+                id: requestFreightDto.vehicleRegisterId,
+              },
+            },
+            freight_register: {
+              connect: {
+                id: requestFreightDto.freightRegisterId,
+              },
             },
           },
-          vehicle_register: {
-            connect: {
-              id: requestFreightDto.vehicleRegisterId,
-            },
-          },
-          freight_register: {
-            connect: {
-              id: requestFreightDto.freightRegisterId,
-            },
-          },
-        },
-        include: {
-          freight_register: {
-            include: {
-              freight: {
-                select: {
-                  id: true,
+          include: {
+            freight_register: {
+              include: {
+                freight: {
+                  select: {
+                    id: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
+        });
 
-      const freight = await tx.freight
-        .update({
+        const freight = await tx.freight.update({
           where: {
             id: freightRequest.freight_register.freight.id,
           },
@@ -191,16 +175,19 @@ export class DeliveryPersonService {
             status_request: StatusRequestEnum.SOLICITADO,
             status_shipping: StatusShippingEnum.AGUARDANDO_COLETA,
           },
-        })
-        .catch(() => {
-          throw new HttpException('Failed to request', HttpStatus.BAD_REQUEST);
         });
 
-      return {
-        freight,
-        freightRequest,
-      };
-    });
+        return {
+          freight,
+          freightRequest,
+        };
+      })
+      .catch(() => {
+        throw new HttpException(
+          'Failed to request. Check freight and vehicle informations.',
+          HttpStatus.BAD_REQUEST,
+        );
+      });
 
     return new ResponseDto(
       false,
@@ -324,14 +311,7 @@ export class DeliveryPersonService {
       where: {
         id: updateVehicleDto.id,
       },
-      data: {
-        brand: updateVehicleDto.brand,
-        model: updateVehicleDto.model,
-        year: updateVehicleDto.year,
-        name: updateVehicleDto.name,
-        classif_weight: updateVehicleDto.classifWeight,
-        vehicle_type: updateVehicleDto.vehicleType,
-      },
+      data: updateVehicleDto,
     });
 
     return new ResponseDto(false, 'Vehicle updated successfully', vehicle);

@@ -9,7 +9,7 @@ import { UpdateFreightDto } from './dto/update-freight.dto';
 import { DeleteFreightDto } from './dto/delete-freight.dto';
 import { ListMyFreightsDto } from './dto/list-my-freights.dto';
 import { StatusShippingEnum } from '../delivery-person/enum/update-freight-status.enum';
-import { AcceptFreightDto } from './dto/accept-freight.dto';
+import { ResponseRequestDto } from './dto/response-request.dto';
 
 @Injectable()
 export class CompanyService {
@@ -56,7 +56,12 @@ export class CompanyService {
     const tax = freightTaxCalc(parcialValue, createFreightDto.distance);
 
     const updatedFreightInfo = {
-      ...createFreightDto,
+      name: createFreightDto.name,
+      description: createFreightDto.description,
+      min_weight: createFreightDto.min_weight,
+      distance: createFreightDto.distance,
+      fragile: createFreightDto.fragile,
+      extra_observation: createFreightDto.extra_observation,
       value: parcialValue,
       tax: tax,
       total_value: parcialValue + tax,
@@ -101,7 +106,11 @@ export class CompanyService {
         freight_id: updateFreightDto.id,
       },
       include: {
-        freight: true,
+        freight: {
+          include: {
+            address: true,
+          },
+        },
       },
     });
 
@@ -109,23 +118,72 @@ export class CompanyService {
       throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
     }
 
-    const minWeight =
-      updateFreightDto?.min_weight ?? freightRegister.freight.min_weight;
-    const distance =
-      updateFreightDto?.distance ?? freightRegister.freight.distance;
-    const parcialValue = distance * minWeight;
-    const tax = freightTaxCalc(parcialValue, updateFreightDto.distance);
+    const {
+      name,
+      description,
+      min_weight,
+      distance,
+      fragile,
+      extra_observation,
+      status_request,
+      status_shipping,
+      address: {
+        city,
+        state,
+        street,
+        address_number,
+        complement,
+        zipcode,
+        neighborhood,
+      },
+    } = freightRegister.freight;
+    const updatedMinWeight = updateFreightDto?.min_weight ?? min_weight;
+    const updatedDistance = updateFreightDto?.distance ?? distance;
+    const updatedParcialValue = updatedDistance * updatedMinWeight;
+    const updatedTax = freightTaxCalc(
+      updatedParcialValue,
+      updateFreightDto.distance,
+    );
+
+    const updatedFreightInfo = {
+      name: updateFreightDto?.name ?? name,
+      description: updateFreightDto?.description ?? description,
+      min_weight: updateFreightDto?.min_weight ?? min_weight,
+      distance: updateFreightDto?.distance ?? distance,
+      fragile: updateFreightDto?.fragile ?? fragile,
+      extra_observation:
+        updateFreightDto?.extra_observation ?? extra_observation,
+      value: updatedParcialValue,
+      tax: updatedTax,
+      total_value: updatedParcialValue + updatedTax,
+      status_shipping,
+      status_request,
+    };
+
+    const address = {
+      city: updateFreightDto?.city ?? city,
+      state: updateFreightDto?.state ?? state,
+      street: updateFreightDto?.street ?? street,
+      address_number: updateFreightDto?.address_number ?? address_number,
+      complement: updateFreightDto?.complement ?? complement,
+      zipcode: updateFreightDto?.zipcode ?? zipcode,
+      neighborhood: updateFreightDto?.neighborhood ?? neighborhood,
+    };
 
     const updatedFreight = await this.prisma.freight.update({
       where: {
         id: updateFreightDto.id,
       },
       data: {
-        min_weight: minWeight,
-        distance: distance,
-        value: parcialValue,
-        tax: tax,
-        total_value: parcialValue + tax,
+        ...updatedFreightInfo,
+        address: {
+          update: {
+            ...address,
+          },
+        },
+      },
+      include: {
+        address: true,
       },
     });
 
@@ -147,7 +205,11 @@ export class CompanyService {
         company_id: userId,
       },
       include: {
-        freight: true,
+        freight: {
+          include: {
+            address: true,
+          },
+        },
       },
     });
 
@@ -217,11 +279,14 @@ export class CompanyService {
     return new ResponseDto(false, '', freights);
   }
 
-  async acceptRequest(acceptFreightDto: AcceptFreightDto, userId: string) {
-    const freight = await this.prisma.freightRequest.findFirst({
+  async responseRequest(
+    responseRequestDto: ResponseRequestDto,
+    userId: string,
+  ) {
+    const freightRequest = await this.prisma.freightRequest.findFirst({
       where: {
         freight_register: {
-          freight_id: acceptFreightDto.freightId,
+          freight_id: responseRequestDto.freightId,
           company_id: userId,
         },
       },
@@ -238,20 +303,41 @@ export class CompanyService {
       },
     });
 
-    if (!freight) {
+    if (!freightRequest) {
       throw new HttpException('Freight not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.prisma.freight.update({
-      where: {
-        id: freight.freight_register.freight.id,
-      },
-      data: {
-        status_request: StatusRequestEnum.APROVADO,
-      },
+    if (responseRequestDto.accepted) {
+      await this.prisma.freight.update({
+        where: {
+          id: freightRequest.freight_register.freight.id,
+        },
+        data: {
+          status_request: StatusRequestEnum.APROVADO,
+        },
+      });
+
+      return new ResponseDto(false, 'Request accepted successfully', null);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.freightRequest.delete({
+        where: {
+          id: freightRequest.id,
+        },
+      });
+
+      await tx.freight.update({
+        where: {
+          id: freightRequest.freight_register.freight.id,
+        },
+        data: {
+          status_request: StatusRequestEnum.DISPONIVEL,
+        },
+      });
     });
 
-    return new ResponseDto(false, 'Request accepted successfully', null);
+    return new ResponseDto(false, 'Request rejected successfully', null);
   }
 
   async deleteFreight(deleteFreightDto: DeleteFreightDto, userId: string) {
@@ -259,6 +345,17 @@ export class CompanyService {
       where: {
         freight_id: deleteFreightDto.freight_id,
         company_id: userId,
+      },
+      include: {
+        freight: {
+          select: {
+            address: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -283,6 +380,12 @@ export class CompanyService {
           freight: {
             id: freight.freight_id,
           },
+        },
+      });
+
+      await tx.address.delete({
+        where: {
+          id: freight.freight.address.id,
         },
       });
 
