@@ -3,6 +3,7 @@ import { PrismaService } from 'src/database/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { ResponseDto } from '../global/dto/response.dto';
+import { SendEmailDto } from './dto/send-email.dto';
 
 @Injectable()
 export class UsersService {
@@ -79,5 +80,37 @@ export class UsersService {
     }
 
     return new ResponseDto(false, 'User deleted successfully', null);
+  }
+
+  async recoverPassword(
+    sendEmailDto: SendEmailDto,
+  ): Promise<ResponseDto | undefined> {
+    const userExists = await this.prisma.user.findFirst({
+      where: {
+        email: sendEmailDto.email,
+      },
+    });
+
+    if (!userExists) {
+      throw new HttpException('User does not exists', HttpStatus.NOT_FOUND);
+    }
+
+    const saltOrRounds = 10;
+    const hash = await bcrypt.hash(userExists.email, saltOrRounds);
+
+    const updatedUser = await this.prisma.user.update({
+      where: {
+        id: userExists.id,
+      },
+      data: {
+        password: hash,
+      },
+    });
+
+    if (!updatedUser) {
+      throw new HttpException('User not updated', HttpStatus.BAD_REQUEST);
+    }
+
+    return new ResponseDto(false, 'User updated successfully', null);
   }
 }

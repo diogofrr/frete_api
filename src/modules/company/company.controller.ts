@@ -21,8 +21,8 @@ import { ResponseRequestDto } from './dto/response-request.dto';
 import { RolesGuard } from '../roles/roles.guard';
 import { Roles } from '../roles/roles.decorator';
 import { Role } from '../roles/enum/role.enum';
-@Controller('company')
 @UseGuards(RolesGuard)
+@Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
