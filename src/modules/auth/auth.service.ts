@@ -166,7 +166,9 @@ export class AuthService {
       throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
     }
 
-    if (userExists.resetPasswordExpires > new Date()) {
+    const now = new Date();
+
+    if (now > userExists.resetPasswordExpires) {
       throw new HttpException(
         'Token expired, please generate a new one',
         HttpStatus.BAD_REQUEST,
