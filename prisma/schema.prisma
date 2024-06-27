@@ -32,6 +32,8 @@ model User {
   email String
   tel String
   password String
+  resetPasswordToken String
+  resetPasswordExpires DateTime
   profile_type String
   company_users Company?
   delivery_person_users DeliveryPerson?

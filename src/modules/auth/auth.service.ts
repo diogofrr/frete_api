@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -13,6 +18,11 @@ import { SignUpCompanyDto } from './dto/sign-up-company.dto';
 import { CreateCompanyDto } from '../company/dto/create-company.dto';
 import { SignUpDeliveryPersonDto } from './dto/sign-up-delivery-person.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { PrismaService } from 'src/database/prisma.service';
+import { SendEmailDto } from './dto/send-email.dto';
+import { MailerService } from '@nestjs-modules/mailer';
+import { recoverPasswordEmail } from '../global/resources/recoverPasswordEmail';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +31,8 @@ export class AuthService {
     private deliveryPerson: DeliveryPersonService,
     private company: CompanyService,
     private jwtService: JwtService,
+    private prisma: PrismaService,
+    private mailService: MailerService,
   ) {}
 
   async signIn(data: SignInDto): Promise<ResponseDto> {
@@ -133,5 +145,89 @@ export class AuthService {
         expiresIn: '2h',
       }),
     });
+  }
+
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<ResponseDto | undefined> {
+    const userExists = await this.prisma.user.findFirst({
+      where: {
+        email: resetPasswordDto.email,
+      },
+    });
+
+    if (!userExists) {
+      throw new HttpException('User does not exists', HttpStatus.NOT_FOUND);
+    }
+
+    const compare = resetPasswordDto.token === userExists.resetPasswordToken;
+
+    if (!compare) {
+      throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
+    }
+
+    if (userExists.resetPasswordExpires > new Date()) {
+      throw new HttpException(
+        'Token expired, please generate a new one',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const saltOrRounds = 10;
+    const hash = await bcrypt.hash(resetPasswordDto.new_password, saltOrRounds);
+
+    const updatedUser = await this.prisma.user.update({
+      where: {
+        id: userExists.id,
+      },
+      data: {
+        password: hash,
+      },
+    });
+
+    if (!updatedUser) {
+      throw new HttpException('User not updated', HttpStatus.BAD_REQUEST);
+    }
+
+    return new ResponseDto(false, 'User updated successfully', null);
+  }
+
+  async sendEmail(
+    sendEmailDto: SendEmailDto,
+  ): Promise<ResponseDto | undefined> {
+    const userExists = await this.prisma.user.findFirst({
+      where: {
+        email: sendEmailDto.email,
+      },
+    });
+
+    if (!userExists) {
+      throw new HttpException('User does not exists', HttpStatus.NOT_FOUND);
+    }
+
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+
+    const saltOrRounds = 10;
+    const hash = await bcrypt.hash(userExists.email, saltOrRounds);
+
+    await this.prisma.user.update({
+      where: {
+        id: userExists.id,
+      },
+      data: {
+        resetPasswordExpires: now,
+        resetPasswordToken: hash,
+      },
+    });
+
+    await this.mailService.sendMail({
+      to: userExists.email,
+      from: 'Team Fretes <contadeatividades9199@gmail.com>',
+      subject: 'Alteração de senha',
+      html: recoverPasswordEmail(hash),
+    });
+
+    return new ResponseDto(false, 'Email sent successfully', null);
   }
 }
