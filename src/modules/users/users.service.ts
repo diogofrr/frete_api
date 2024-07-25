@@ -3,6 +3,8 @@ import { PrismaService } from 'src/database/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { ResponseDto } from '../global/dto/response.dto';
+import { CreateNotificationDto } from './dto/create-notification.dto';
+import { ListNotificationsDto } from './dto/list-notifications.dto';
 
 @Injectable()
 export class UsersService {
@@ -81,5 +83,52 @@ export class UsersService {
     }
 
     return new ResponseDto(false, 'User deleted successfully', null);
+  }
+
+  async createNotification(
+    createNotificationDto: CreateNotificationDto,
+    userId: string,
+  ) {
+    const { title, message, image } = createNotificationDto;
+
+    const notification = await this.prisma.notifications.create({
+      data: {
+        title,
+        message,
+        image,
+        user_id: userId,
+      },
+    });
+
+    return new ResponseDto(
+      false,
+      'Notification created successfully',
+      notification,
+    );
+  }
+
+  async listNotifications(
+    listNotificationsDto: ListNotificationsDto,
+    userId: string,
+  ) {
+    const { page, pageSize } = listNotificationsDto;
+    const offset = (page - 1) * pageSize;
+
+    const notifications = await this.prisma.notifications.findMany({
+      skip: offset,
+      take: pageSize,
+      where: {
+        user_id: userId,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+
+    return new ResponseDto(
+      false,
+      'Notifications listed successfully',
+      notifications,
+    );
   }
 }

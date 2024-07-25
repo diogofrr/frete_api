@@ -21,6 +21,10 @@ import { ResponseRequestDto } from './dto/response-request.dto';
 import { RolesGuard } from '../roles/roles.guard';
 import { Roles } from '../roles/roles.decorator';
 import { Role } from '../roles/enum/role.enum';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+
+@ApiBearerAuth()
+@ApiTags('Empresas')
 @UseGuards(RolesGuard)
 @Controller('company')
 export class CompanyController {

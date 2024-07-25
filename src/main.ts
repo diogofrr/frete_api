@@ -12,6 +12,10 @@ async function bootstrap() {
     .setTitle('Fretes API')
     .setDescription('Descrição da API de fretes.')
     .setVersion('1.0')
+    .addTag('Autenticação', 'Autenticação e gestão da sessão de usuários.')
+    .addTag('Entregadores', 'Funcionalidades para entregadores.')
+    .addTag('Empresas', 'Funcionalidades para empresas.')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

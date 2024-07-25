@@ -232,4 +232,32 @@ export class AuthService {
 
     return new ResponseDto(false, 'Email sent successfully', null);
   }
+
+  async refreshToken(req): Promise<ResponseDto> {
+    const currentTimestamp = Date.now();
+
+    if (req.user.exp > currentTimestamp) {
+      throw new HttpException('Token expired', HttpStatus.UNAUTHORIZED);
+    }
+
+    const user = await this.usersService.findOne(req.user.email);
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const payload = {
+      sub: user.result.id,
+      email: user.result.email,
+      profile_type: user.result.profile_type,
+      profile_id: user.result.profile_id,
+    };
+
+    return new ResponseDto(false, 'Successful token update', {
+      access_token: await this.jwtService.signAsync(payload, {
+        secret: jwtConstants.secret,
+        expiresIn: '2h',
+      }),
+    });
+  }
 }

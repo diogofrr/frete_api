@@ -21,7 +21,10 @@ import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { RolesGuard } from '../roles/roles.guard';
 import { Role } from '../roles/enum/role.enum';
 import { Roles } from '../roles/roles.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiBearerAuth()
+@ApiTags('Entregadores')
 @UseGuards(RolesGuard)
 @Controller('delivery-person')
 export class DeliveryPersonController {
